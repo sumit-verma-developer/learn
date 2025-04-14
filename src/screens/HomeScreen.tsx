@@ -6,7 +6,7 @@ import {
   TextInput,
   FlatList,
 } from 'react-native';
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import {RootState} from '../store/store';
 import {deleteSubTask, deleteTask, resetTasks} from '../store/todoslice';
@@ -17,44 +17,54 @@ const HomeScreen = ({navigation}: any) => {
   const currentName = useSelector((state: RootState) => state?.user?.name);
   const tasks = useSelector((state: RootState) => state.todo.tasks);
   const dispatch = useDispatch();
-  const [filteredTasks, setFilteredTasks] = useState(tasks);
-
-
+  const [filteredTasks, setFilteredTasks] = useState<Array<any>>([]);
   
 
-  const handleSearch = () => {
-    if (searchValue.trim() === '') {
-      setFilteredTasks(tasks);
-      return;
-    }
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      if (searchValue.trim() === '') {
+        setFilteredTasks(tasks);
+        return;
+      }
 
-    const lowerSearch = searchValue.toLowerCase();
-    const filtered = tasks
-      .map(task => {
-        const taskMatches = task.title.toLowerCase().includes(lowerSearch);
-        const matchedSubTasks = task.subTasks.filter(sub =>
-          sub.title.toLowerCase().includes(lowerSearch),
-        );
+      const lowerSearch = searchValue.toLowerCase();
 
-        if (taskMatches || matchedSubTasks.length) {
-          return {
-            ...task,
-            subTasks: matchedSubTasks.length ? matchedSubTasks : task.subTasks,
-          };
-        }
+      const filtered = tasks
+        .map(task => {
+          const taskMatches = task?.title.toLowerCase().includes(lowerSearch);
+          const matchedSubTasks = task?.subTasks.filter(sub =>
+            sub?.title?.toLowerCase().includes(lowerSearch),
+          );
 
-        return null;
-      })
-      .filter(Boolean) as typeof tasks;
+          if (taskMatches || matchedSubTasks.length) {
+            return {
+              ...task,
+              subTasks: matchedSubTasks.length
+                ? matchedSubTasks
+                : task.subTasks,
+            };
+          }
 
-    setFilteredTasks(filtered);
+          return null;
+        })
+        .filter(Boolean) as typeof tasks;
+
+      setFilteredTasks(filtered);
+    }, 100); // ⏱ debounce delay
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchValue, tasks]);
+
+
+  type SubTask = {
+    id: string;
+    title: string;
   };
 
   return (
     <View style={styles.containe}>
       <View style={{flexDirection: 'row', marginTop: 30}}>
         <Text style={styles.editText}>Name:</Text>
-
         <View
           style={{
             borderBottomWidth: 1,
@@ -89,13 +99,16 @@ const HomeScreen = ({navigation}: any) => {
           placeholder="search here"
         />
 
-        <TouchableOpacity style={styles.editButton} onPress={handleSearch}>
+        <TouchableOpacity
+          style={styles.editButton}
+          // onPress={handleSearch}
+        >
           <Text style={styles.editText}>search</Text>
         </TouchableOpacity>
       </View>
-      {filteredTasks.length ? (
-        filteredTasks.map(item => {
-          console.log({item});
+      {(searchValue.trim() ? filteredTasks : tasks).length ? (
+        (searchValue.trim() ? filteredTasks : tasks).map(item => {
+       
           return (
             <>
               <View
@@ -150,8 +163,8 @@ const HomeScreen = ({navigation}: any) => {
                   </TouchableOpacity>
                 </View>
               </View>
-              {item.subTasks.length ? (
-                item.subTasks.map(subItem => {
+              {(item?.subTasks.length ?? 0)>0?(
+                (item.subTasks ?? []).map((subItem: SubTask)=> {
                   console.log({subItem});
                   return (
                     <View
@@ -219,7 +232,10 @@ const HomeScreen = ({navigation}: any) => {
             alignItems: 'center',
             backgroundColor: 'orange',
           }}>
-          <Text style={{color: '#3c3c3c'}}>No Tasks Added</Text>
+          <Text style={{color: '#3c3c3c'}}>
+            {' '}
+            {searchValue.trim() ? 'No matching results' : 'No Tasks Added'}
+          </Text>
         </View>
       )}
 
@@ -257,7 +273,6 @@ const styles = StyleSheet.create({
   input: {
     borderBottomWidth: 1,
     color: '#000',
-    // marginTop: 30,
     width: '60%',
     borderColor: '#3c3c3c',
     backgroundColor: '#ffff',

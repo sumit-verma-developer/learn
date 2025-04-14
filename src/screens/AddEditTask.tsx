@@ -65,7 +65,10 @@ export default function AddEditTask({route}: any) {
           paddingHorizontal: 10,
         }}
       />
+      <View style={{marginTop:'10%'}}>
       <Button title="Submit" onPress={handleSubmit} />
+      </View>
+
     </View>
   );
 }
